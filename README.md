@@ -73,7 +73,7 @@ ggplot(data=Plottable_grouped, aes(month, y = Values_, fill=Measurement))+
   scale_fill_brewer(palette="Dark2")+ theme_bw() 
 ```
 <p align="center">
-  <img width="920" height="613" src="/WEBnetwork2_files/figure-markdown_github/pressure-1.png">
+  <img width="672" height="480" src="/figure-markdown_github/pressure-1.png">
 </p>
 
 ``` r
@@ -82,8 +82,9 @@ ggplot(data=Plottable_grouped, aes(month, y = Values_, color =Measurement))+
   labs(title="Monthly Mean Measurements", subtitle="Assignment 2", y="Measurement", x="Month")+
   scale_fill_brewer(palette="Dark2")+ theme_bw() 
 ```
-
-![](WEBnetwork2_files/figure-markdown_github/pressure-2.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/pressure-2.png">
+</p>
 
 ### Question Two.
 
@@ -105,7 +106,9 @@ labs(title="Diverging Bar Chart", subtitle="Assignment 2", y="y", x="Month")+ th
 xx
 ```
 
-![](WEBnetwork2_files/figure-markdown_github/chunk_2-1.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_2-1.png">
+</p>
 
 ### Question Three.
 
@@ -151,7 +154,9 @@ p <- p + theme_bw()
 p
 ```
 
-![](WEBnetwork2_files/figure-markdown_github/chunk_3-1.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_3-1.png">
+</p>
 
 ### Question Four.
 
@@ -169,7 +174,9 @@ ggplot(Question4_Gathered, aes(x=Values_, y=Month)) +
   labs(title="Monthly Distributions", subtitle="Assignment 2", y="", x="Measurement Value")+ theme_bw() 
 ```
 
-![](WEBnetwork2_files/figure-markdown_github/chunk_4-1.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_4-1.png">
+</p>
 
 ``` r
 ggplot(Question4_Gathered, aes(x=Values_)) + 
@@ -180,7 +187,10 @@ ggplot(Question4_Gathered, aes(x=Values_)) +
   labs(title="Monthly Distributions", subtitle="Assignment 2", y="Count", x="Measurement Value")+theme_bw() 
 ```
 
-![](WEBnetwork2_files/figure-markdown_github/chunk_4-2.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_4-2.png">
+</p>
+
 
 ``` r
 ggplot(Question4_Gathered) + 
@@ -188,8 +198,9 @@ ggplot(Question4_Gathered) +
   labs(title="Monthly Distributions", subtitle="Assignment 2", y="Count", x="Measurement Value")+
   facet_grid(Measurement ~ .) + theme_bw() 
 ```
-
-![](WEBnetwork2_files/figure-markdown_github/chunk_4-3.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_4-3.png">
+</p>
 
 ### Question Five
 
@@ -204,7 +215,9 @@ ggplot(Question4_Gathered, aes(x = Date, y = Values_)) +
   facet_grid(Measurement ~ .) + theme_bw() 
 ```
 
-![](WEBnetwork2_files/figure-markdown_github/chunk_5-1.png)
+<p align="center">
+  <img width="672" height="480" src="/figure-markdown_github/chunk_5-1.png">
+</p>
 
 Conclusion
 ----------
