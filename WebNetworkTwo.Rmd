@@ -1,0 +1,536 @@
+---
+title: "Web & Network Science Assignment 2"
+author: "Eoghan Keany"
+date: "14 February 2019"
+output:
+  word_document: default
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction.
+
+Web & Network science aims to create models that can reproduce the properties found in real networks. However the majority of natural networks have no resemblance to the crystal like structure that embodies the mathematical models that we understand. Instead they appear to follow no laws and are produced by random processes. Random network theory embraces this random nature by constructing networks that are random.
+
+From the perspective of modelling a network is a relatively elementary object that contains a number of nodes connected by edges. The challenging aspect is to assign these edges to the correct nodes to recreate the complexity of the observed network.  The ethos behind the generation of a random graph is relatively simple. A random network contains a number nodes where each node pair is connected together with a certain probability p. The algorithm used to generate a random graph is defined below:
+
+1. Initially start with a number of isolated nodes.
+2.	Choose a node pair from this collective and generate a random number between 0-1 . If the generated number is above the predefined probability p then the nodes will be connected together with an edge, if the number is less than p leave the nodes isolated.
+3.	Repeat step two for each of the N(N-1)/2 pairs in the entire network
+
+Within this report the following random network generation models were used:
+1.	Edgar Gilbert random model denoted G(n,p).
+2.	Watts-Strogatz small-world model.
+3.	Barabási-Albert scale free network.
+
+All three of these models were generated in attempt to recreate two real world network. To accurately compare the real world networks to their equivalent random models, a number of common properties of each network were considered, such as: 
+
+* Clustering Coefficient: In network science, the clustering coefficient quantifies the degree to which nodes in the network tend to cluster together. There exist numerous versions of this metric, however for this assignment only the global version used. The global version is predicated upon triplets of nodes. A triplet contains three connected nodes. The global clustering coefficient is defined as the number of closed triplets divided by the total number of triplets (both open and closed). This metric gives an overall indication of the clustering in the network.
+
+* Diameter: The diameter of a network is the maximum eccentricity of any node in the network. In other words it is the maximum distance between any pair of nodes in the network. To calculate the diameter of a network, one must find the shortest path between each pair of nodes. The shortest path with the greatest length is defined as the diameter of the network.
+
+* Average path length: The average path length is defined as the average number of steps along the shortest paths for all possible pairs of network nodes. It quantifies the efficiency of the transportation of information across a network.
+
+* Degree Distribution: The degree distribution is the probability distribution of the degrees within the network. Basically, if we set a variable k to represent the degree of a node (ranging in integer values 0, 1, 2, etc.), then the degree distribution of a graph is a function p(k) which tells us what fraction of the nodes in the graph have a degree k. For a directed network there are two distributions the in-degree and out-degree distributions, denoted. The in-degree of a node corresponds to the number of edges pointing to it, while the out-degree is the number of edges leaving the node.
+
+* Gini Coefficient: The Gini coefficient is a statistical measurand that quantifies how a character is equally distributed among the statistical units. At the two opposite sides of the spectrum lie equidistribution (Gini coefficient of 0), in which each statistical unit receives the same amount of character, and maximum concentration where the total amount of the character is assigned to a single statistical unit (Gini coefficient of 1). In the case of network science this metric is applied to the degree of distribution in a network to distinguish a network from three categories centralized, de-centralised and distributed networks
+
+```{r cars, message=FALSE, warning=FALSE}
+library(igraph)
+library(reldist)
+library(gglorenz)
+library(igraphdata)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(huxtable)
+
+clean_dataframe <- function(df){
+  x <-subset(df, Type_of_link %in% c("Internal Link"))
+  x$Type_of_link <- NULL
+  return(x)
+}
+
+ghotel_csv <- read.csv("//fs2/18234602/Desktop/webNetwork/theGhotel.csv")
+galmont_csv <-  read.csv("//fs2/18234602/Desktop/galmont.csv")
+
+ghotel_csv<- clean_dataframe(ghotel_csv)
+galmont_csv  <- clean_dataframe(galmont_csv)
+
+```
+
+## Real World Networks
+
+
+```{r pressure, echo=FALSE}
+ghotel_graph <- graph_from_data_frame(d=ghotel_csv, directed=T)
+galmont_graph <- graph_from_data_frame(d=galmont_csv , directed=T)
+
+plot.igraph(simplify(ghotel_graph),
+            layout=layout.fruchterman.reingold,
+            vertex.size=7,
+            vertex.label=NA,
+            edge.arrow.width=.5,
+            edge.arrow.size=.3)
+title('The G Hotel Web Network')
+
+plot.igraph(simplify(galmont_graph),
+            layout=layout.fruchterman.reingold,
+            vertex.size=7,
+            vertex.label=NA,
+            edge.arrow.width=.5,
+            edge.arrow.size=.3)
+title('The Galmont Hotel Web Network')
+```
+
+```{r chunk_20}
+g1 <- ggplot(as.data.frame(degree(ghotel_graph ,loops = FALSE)), aes(x=degree(ghotel_graph ,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve G hotel")
+
+g2 <- ggplot(as.data.frame(degree(galmont_graph,loops = FALSE)), aes(x=degree(galmont_graph,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve Galmont Hotel")
+
+grid.arrange(g1, g2, ncol=2)
+
+```
+
+
+
+```{r chunk_13}
+df<-data.frame(degree_distribution(galmont_graph , cumulative = FALSE))
+colnames(df) <- "single"
+df$idu <- as.numeric(row.names(df))
+df$Hotel <- "Galmont"
+
+dfOUT <- data.frame(degree_distribution(galmont_graph, cumulative = FALSE, mode="out"))
+colnames(dfOUT) <- "single"
+dfOUT$idu <- as.numeric(row.names(dfOUT))
+dfOUT$Hotel <- "Galmont"
+
+dfIN <- data.frame(degree_distribution(galmont_graph, cumulative = FALSE, mode="in"))
+colnames(dfIN) <- "single"
+dfIN$idu <- as.numeric(row.names(dfIN))
+dfIN$Hotel <- "Galmont"
+
+df2<-data.frame(degree_distribution(ghotel_graph, cumulative = FALSE))
+colnames(df2) <- "single"
+df2$idu <- as.numeric(row.names(df2))
+df2$Hotel <- "G Hotel Bay"
+
+dfOUT2 <- data.frame(degree_distribution(ghotel_graph, cumulative = FALSE, mode="out"))
+colnames(dfOUT2) <- "single"
+dfOUT2$idu <- as.numeric(row.names(dfOUT2))
+dfOUT2$Hotel <- "G Hotel Bay"
+
+dfIN2 <- data.frame(degree_distribution(ghotel_graph, cumulative = FALSE, mode="in"))
+colnames(dfIN2) <- "single"
+dfIN2$idu <- as.numeric(row.names(dfIN2))
+dfIN2$Hotel <- "G Hotel Bay"
+
+list_of_dataframes <- list(df,dfOUT,dfIN,df2,dfOUT2,dfIN2)
+
+new <- bind_rows(list_of_dataframes, .id = "xx")
+new <- transform(new,xx = ifelse(xx== 1 | xx == 4, "Total",ifelse(xx== 2 | xx == 5,"Out",
+             ifelse(xx== 3 | xx == 6,"In",0))))
+
+ggplot() + 
+  geom_area(data = new,aes(x = idu,y = single, fill = xx), alpha = 0.5 )+
+  facet_grid(Hotel~.)+
+  labs(title="Degree Distributions", subtitle="Assignment 2", y="Frequency", x="Degree")+
+  theme(legend.title=element_blank())
+
+Galmont_Bay_ <- c(ecount(galmont_graph)
+,vcount(galmont_graph)
+,diameter(galmont_graph, directed = T, unconnected = TRUE)
+,average.path.length(galmont_graph, directed = TRUE, unconnected = TRUE)
+,transitivity(galmont_graph, type = "global"),reldist::gini(degree(galmont_graph, loops = FALSE)),
+mean(degree(galmont_graph, loops = FALSE)))
+
+G_Hotel_ <- c(ecount(ghotel_graph)
+,vcount(ghotel_graph)
+,diameter(ghotel_graph, directed = T, unconnected = TRUE)
+,average.path.length(ghotel_graph, directed = TRUE, unconnected = TRUE)
+,transitivity(ghotel_graph, type = "global"), reldist::gini(degree(ghotel_graph, loops = FALSE)),
+mean(degree(ghotel_graph, loops = FALSE)))
+
+metrics <- cbind(Galmont_Bay_,G_Hotel_)
+rownames(metrics) <- c("Edges","Nodes","Diameter","Average path length","Clustering Coefficient", "Gini Index", "Average Degree")
+metrics
+```
+
+## Erdos-Rényi.
+
+There are two closely related variants of the Erdos-Rényi (ER) random graph model. For this project only the G(n, p) model was used. Within this model a network is constructed by connecting nodes randomly. Each edge is included in the graph with probability p independent from every other edge. 
+
+### Arguments:
+* p: The parameter p can be viewed as a weighting function as p increases from 0 to 1, the model becomes increasingly likely to produce networks with more edges and less and less likely to include networks with fewer edges. The p value was calculated for are real directed networks using the following equation = <k>/2*(n-1);
+* n: The parameter n represents the number of vertices in the original networks.
+
+
+```{r chunk_1}
+k <- mean(degree(ghotel_graph,loops = FALSE))
+n <- vcount(ghotel_graph)
+p <- k/(n-1)
+gnp_Ghotel <- erdos.renyi.game(n,p/2, type = "gnp",directed = TRUE)
+plot(gnp_Ghotel, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4)
+title("Random Network: G(N,p) model G Hotel")
+
+k2 <- mean(degree(galmont_graph,loops = FALSE))
+n2 <- vcount(galmont_graph)
+p2 <- k2/(n2-1)
+gnp_Galmont<- erdos.renyi.game(n2, p2/2, type = "gnp",directed = TRUE)
+plot(gnp_Galmont, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4)
+title("Random Network: G(N,p) model Galmont Hotel")
+
+temp <- degree(gnp_Galmont,loops = FALSE)
+temp2 <- as.data.frame(temp)
+```
+
+
+```{r chunk_21}
+
+g1 <- ggplot(as.data.frame(degree(gnp_Ghotel ,loops = FALSE)), aes(x=degree(gnp_Ghotel ,loops = FALSE)))+ stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve G hotel")
+
+g2 <- ggplot(temp2, aes(x=temp)) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve Galmont hotel")
+
+grid.arrange(g1, g2, ncol=2)
+
+```
+
+```{r chunk_7, echo= FALSE}
+
+df<-data.frame(degree_distribution(gnp_Galmont, cumulative = FALSE))
+colnames(df) <- "single"
+df$idu <- as.numeric(row.names(df))
+df$Hotel <- "Galmont"
+
+dfOUT <- data.frame(degree_distribution(gnp_Galmont, cumulative = FALSE, mode="out"))
+colnames(dfOUT) <- "single"
+dfOUT$idu <- as.numeric(row.names(dfOUT))
+dfOUT$Hotel <- "Galmont"
+
+dfIN <- data.frame(degree_distribution(gnp_Galmont, cumulative = FALSE, mode="in"))
+colnames(dfIN) <- "single"
+dfIN$idu <- as.numeric(row.names(dfIN))
+dfIN$Hotel <- "Galmont"
+
+df2<-data.frame(degree_distribution(gnp_Ghotel, cumulative = FALSE))
+colnames(df2) <- "single"
+df2$idu <- as.numeric(row.names(df2))
+df2$Hotel <- "G Hotel Bay"
+
+dfOUT2 <- data.frame(degree_distribution(gnp_Ghotel, cumulative = FALSE, mode="out"))
+colnames(dfOUT2) <- "single"
+dfOUT2$idu <- as.numeric(row.names(dfOUT2))
+dfOUT2$Hotel <- "G Hotel Bay"
+
+dfIN2 <- data.frame(degree_distribution(gnp_Ghotel, cumulative = FALSE, mode="in"))
+colnames(dfIN2) <- "single"
+dfIN2$idu <- as.numeric(row.names(dfIN2))
+dfIN2$Hotel <- "G Hotel Bay"
+
+list_of_dataframes <- list(df,dfOUT,dfIN,df2,dfOUT2,dfIN2)
+
+new <- bind_rows(list_of_dataframes, .id = "xx")
+new <- transform(new,xx = ifelse(xx== 1 | xx == 4, "Total",ifelse(xx== 2 | xx == 5,"Out",
+             ifelse(xx== 3 | xx == 6,"In",0))))
+
+ggplot() + 
+  geom_area(data = new,aes(x = idu,y = single, fill = xx), alpha = 0.5 )+
+  facet_grid(Hotel~.)+
+  labs(title="Degree Distributions", subtitle="Assignment 2", y="Frequency", x="Degree")+
+  theme(legend.title=element_blank())
+
+```
+
+```{r chunk_25}
+
+Galmont_Gnp <- c(ecount(gnp_Galmont)
+,vcount(gnp_Galmont)
+,diameter(gnp_Galmont, directed = T, unconnected = TRUE)
+,average.path.length(gnp_Galmont, directed = TRUE, unconnected = TRUE)
+,transitivity(gnp_Galmont, type = "global"),reldist::gini(degree(gnp_Galmont, loops = FALSE)),
+mean(degree(gnp_Galmont, loops = FALSE)))
+
+G_Hotel_Gnp <- c(ecount(gnp_Ghotel)
+,vcount(gnp_Ghotel)
+,diameter(gnp_Ghotel, directed = T, unconnected = TRUE)
+,average.path.length(gnp_Ghotel, directed = TRUE, unconnected = TRUE)
+,transitivity(gnp_Ghotel, type = "global"), reldist::gini(degree(gnp_Ghotel, loops = FALSE)),
+mean(degree(gnp_Ghotel, loops = FALSE)))
+
+options(scipen=999)
+metrics1 <- cbind(Galmont_Gnp,G_Hotel_Gnp)
+rownames(metrics1) <- c("Edges","Nodes","Diameter","Average path length","Clustering Coefficient", "Gini Index",
+                        "Average Degree")
+metrics1
+```
+
+## Watts and Strogatz model.
+The small world, otherwise known as 6 degrees of separation, has long captivated the attention of the general public. The theory states that if you choose any two individuals on earth, they will be separated at most by six acquaintances.
+
+The Watts and Strogatz model is a random graph generation model that creates a network based on the small world properties. The model initially starts with a simple lattice structure where each node in the network is linked to its closest neighbours. Another parameter is specified as the rewiring probability. Each edge in the lattice now has a probability that it will be rewired to another node in the lattice as a random edge. 
+
+As the model begins with a simple lattice structure, it has a high average path length along with a large clustering coefficient. As each edge is rewired it will create a shortcut between highly connected clusters. Initially, as the rewiring probability increases, the average path length decreases at a slower rate relative to the clustering coefficient. Therefore, this allows the average path length of the network to decrease significantly while having a minor impact on the clustering coefficient
+
+### Arguments: 
+* dim: Integer constant, the dimension of the starting lattice. In our case 1.
+* size: the size of the lattice along each dimension or number of nodes in our real network
+* nei: the neighbourhood within which the vertices of the lattice will be connected.
+* Beta: Beta or the rewiring probability was calculated using the global clustering coefficient of our real world networks and the average clustering coefficient of the lattice with the same dimensions as our real network, the equation used was: 1-(global_cg0/cg0)^(1/3)
+
+
+```{r chunk_3}
+lattice <- make_lattice(dimvector = n,  nei = k/2,
+                       directed = TRUE, mutual = FALSE, circular = TRUE)
+cg0 <- transitivity(lattice, type = "average")
+global_cg0 <- transitivity(ghotel_graph, type = "global")
+beta <- 1-(global_cg0/cg0)^(1/3)
+
+#rewire the original lattice
+Small_world_Ghotel<- rewire(lattice, each_edge(p = beta, loops = FALSE))
+plot(Small_world_Ghotel, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4,layout = layout.circle(Small_world_Ghotel))
+title("Small World - G hotel")
+```
+
+```{r chunk_4}
+# create a lattice with the same dimensions
+lattice2<- make_lattice(dimvector = n2, nei = k2/2,
+                        directed = TRUE, mutual = FALSE, circular = TRUE)
+
+cg02 <- transitivity(lattice2, type = "average")
+global_cg02 <- transitivity(galmont_graph, type = "global")
+beta2 <- 1-(global_cg02/cg02)^(1/3)
+#rewire the original lattice
+Small_world_Galmont<- rewire(lattice2, each_edge(p = beta2, loops = FALSE))
+plot(Small_world_Galmont, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4,layout = layout.circle(Small_world_Galmont))
+title("Small World - Galmont hotel")
+
+```
+
+```{r chunk_22}
+g1 <- ggplot(as.data.frame(degree(Small_world_Ghotel ,loops = FALSE)), aes(x = degree(Small_world_Ghotel ,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve G hotel G(n,p)")
+
+g2 <- ggplot(as.data.frame(degree(Small_world_Galmont ,loops = FALSE)), aes(x = degree(Small_world_Galmont ,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve Galmont G(n,p)")
+
+grid.arrange(g1, g2, ncol=2)
+
+```
+
+
+```{r chunk_14, echo=FALSE}
+df<-data.frame(degree_distribution(Small_world_Galmont, cumulative = FALSE))
+colnames(df) <- "single"
+df$idu <- as.numeric(row.names(df))
+df$Hotel <- "Galmont"
+
+dfOUT <- data.frame(degree_distribution(Small_world_Galmont, cumulative = FALSE, mode="out"))
+colnames(dfOUT) <- "single"
+dfOUT$idu <- as.numeric(row.names(dfOUT))
+dfOUT$Hotel <- "Galmont"
+
+dfIN <- data.frame(degree_distribution(Small_world_Galmont, cumulative = FALSE, mode="in"))
+colnames(dfIN) <- "single"
+dfIN$idu <- as.numeric(row.names(dfIN))
+dfIN$Hotel <- "Galmont"
+
+df2<-data.frame(degree_distribution(Small_world_Ghotel, cumulative = FALSE))
+colnames(df2) <- "single"
+df2$idu <- as.numeric(row.names(df2))
+df2$Hotel <- "G Hotel Bay"
+
+dfOUT2 <- data.frame(degree_distribution(Small_world_Ghotel, cumulative = FALSE, mode="out"))
+colnames(dfOUT2) <- "single"
+dfOUT2$idu <- as.numeric(row.names(dfOUT2))
+dfOUT2$Hotel <- "G Hotel Bay"
+
+dfIN2 <- data.frame(degree_distribution(Small_world_Ghotel, cumulative = FALSE, mode="in"))
+colnames(dfIN2) <- "single"
+dfIN2$idu <- as.numeric(row.names(dfIN2))
+dfIN2$Hotel <- "G Hotel Bay"
+
+list_of_dataframes <- list(df,dfOUT,dfIN,df2,dfOUT2,dfIN2)
+
+new <- bind_rows(list_of_dataframes, .id = "xx")
+new <- transform(new,xx = ifelse(xx== 1 | xx == 4, "Total",ifelse(xx== 2 | xx == 5,"Out",
+             ifelse(xx== 3 | xx == 6,"In",0))))
+
+ggplot() + 
+  geom_area(data = new,aes(x = idu,y = single, fill = xx), alpha = 0.5 )+
+  facet_grid(Hotel~.)+
+  labs(title="Degree Distributions", subtitle="Assignment 2", y="Frequency", x="Degree")+
+  theme(legend.title=element_blank())
+
+```
+
+````{r chunk_26}
+Galmont_SmallWorld <- c(ecount(Small_world_Galmont)
+,vcount(Small_world_Galmont)
+,diameter(Small_world_Galmont, directed = T, unconnected = TRUE)
+,average.path.length(Small_world_Galmont, directed = TRUE, unconnected = TRUE)
+,transitivity(Small_world_Galmont, type = "global"),reldist::gini(degree(Small_world_Galmont, loops = FALSE)), mean(degree(Small_world_Galmont, loops = FALSE)))
+
+G_Hotel_SmallWorld <- c(ecount(Small_world_Ghotel)
+,vcount(Small_world_Ghotel)
+,diameter(Small_world_Ghotel, directed = T, unconnected = TRUE)
+,average.path.length(Small_world_Ghotel, directed = TRUE, unconnected = TRUE)
+,transitivity(Small_world_Ghotel, type = "global"), reldist::gini(degree(Small_world_Ghotel, loops = FALSE)), mean(degree(Small_world_Ghotel, loops = FALSE)))
+
+metrics2 <- cbind(Galmont_SmallWorld ,G_Hotel_SmallWorld)
+rownames(metrics2) <- c("Edges","Nodes","Diameter","Average path length","Clustering Coefficient", "Gini Index",
+                        "Average Degree")
+metrics2
+````
+
+## Barabási-Albert scale free network:
+Preferential attachment is a probabilistic mechanism. It implies, that when a new node is introduced to the network it has a choice between any nodes in the network, however this new node will be twice as likely to connect to the degree-four node relative to the two degree node ("The rich get richer").
+
+The Barabási-Albert model is a random network model predicated upon preferential attachment. It can be generated using the following algorithm. The network must begin with a number of nodes where the links between them have been chosen randomly as long as each node has at least one link. New nodes are added to the network iteratively. Each new node is connected to     existing nodes with a probability that is proportional to the number of links that the existing nodes already have.
+ 
+### Arguments:
+
+* n: the number of nodes in our original network.
+* power: The power of the preferential attachment, the default is 1 which represents linear preferential attachment.
+* k/2: the number of edges to add in each time step based on the avergae degree
+
+
+````{r chunk_5}
+scale_free_Ghotel <- sample_pa(n, power=1, k/2,  directed=T)
+plot(scale_free_Ghotel, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4)
+title("G Hotel - Preferential Attachment Model")
+```
+
+```{r chunk_6}
+scale_free_Galmont <- sample_pa(n2, power=1, k2/2,  directed=T)
+plot(scale_free_Galmont, vertex.label= NA, edge.arrow.size=0.02,vertex.size = 4)
+title("Galway Bay Hotel - Preferential Attachment Model")
+```
+
+
+```{r chunk_23}
+g1 <- ggplot(as.data.frame(degree(scale_free_Ghotel ,loops = FALSE)), aes(x = degree(scale_free_Ghotel ,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve G hotel")
+
+g2 <- ggplot(as.data.frame(degree(scale_free_Galmont ,loops = FALSE)), aes(x= degree(scale_free_Galmont ,loops = FALSE))) + stat_lorenz() + coord_fixed() + geom_abline(linetype="dashed") + theme_minimal()+
+xlab("Share of nodes with the smallest degrees") +
+  ylab("Share of edges") +
+  ggtitle("Lorenz Curve Galmont hotel")
+
+grid.arrange(g1, g2, ncol=2)
+
+```
+
+```{r chunk_12, echo=FALSE}
+df<-data.frame(degree_distribution(scale_free_Galmont, cumulative = FALSE))
+colnames(df) <- "single"
+df$idu <- as.numeric(row.names(df))
+df$Hotel <- "Galmont"
+
+dfOUT <- data.frame(degree_distribution(scale_free_Galmont, cumulative = FALSE, mode="out"))
+colnames(dfOUT) <- "single"
+dfOUT$idu <- as.numeric(row.names(dfOUT))
+dfOUT$Hotel <- "Galmont"
+
+dfIN <- data.frame(degree_distribution(scale_free_Galmont, cumulative = FALSE, mode="in"))
+colnames(dfIN) <- "single"
+dfIN$idu <- as.numeric(row.names(dfIN))
+dfIN$Hotel <- "Galmont"
+
+df2<-data.frame(degree_distribution(scale_free_Ghotel, cumulative = FALSE))
+colnames(df2) <- "single"
+df2$idu <- as.numeric(row.names(df2))
+df2$Hotel <- "G Hotel Bay"
+
+dfOUT2 <- data.frame(degree_distribution(scale_free_Ghotel, cumulative = FALSE, mode="out"))
+colnames(dfOUT2) <- "single"
+dfOUT2$idu <- as.numeric(row.names(dfOUT2))
+dfOUT2$Hotel <- "G Hotel Bay"
+
+dfIN2 <- data.frame(degree_distribution(scale_free_Ghotel, cumulative = FALSE, mode="in"))
+colnames(dfIN2) <- "single"
+dfIN2$idu <- as.numeric(row.names(dfIN2))
+dfIN2$Hotel <- "G Hotel Bay"
+
+list_of_dataframes <- list(df,dfOUT,dfIN,df2,dfOUT2,dfIN2)
+
+new <- bind_rows(list_of_dataframes, .id = "xx")
+new <- transform(new,xx = ifelse(xx== 1 | xx == 4, "Total",ifelse(xx== 2 | xx == 5,"Out",
+             ifelse(xx== 3 | xx == 6,"In",0))))
+
+ggplot() + 
+  geom_area(data = new,aes(x = idu,y = single, fill = xx), alpha = 0.5 )+
+  facet_grid(Hotel~.)+
+  labs(title="Degree Distributions", subtitle="Assignment 2", y="Frequency", x="Degree")+
+  theme(legend.title=element_blank())
+
+
+```
+
+```{r chunk_27}
+
+Galmont_ScaleFree <- c(ecount(scale_free_Galmont)
+,vcount(scale_free_Galmont)
+,diameter(scale_free_Galmont, directed = T, unconnected = TRUE)
+,average.path.length(scale_free_Galmont, directed = TRUE, unconnected = TRUE)
+,transitivity(scale_free_Galmont, type = "global"),reldist::gini(degree(scale_free_Galmont, loops = FALSE)), mean(degree(scale_free_Galmont, loops = FALSE)))
+
+G_Hotel_ScaleFree <- c(ecount(scale_free_Ghotel)
+,vcount(scale_free_Ghotel)
+,diameter(scale_free_Ghotel, directed = T, unconnected = TRUE)
+,average.path.length(scale_free_Ghotel, directed = TRUE, unconnected = TRUE)
+,transitivity(scale_free_Ghotel, type = "global"), reldist::gini(degree(scale_free_Ghotel, loops = FALSE)), mean(degree(scale_free_Ghotel, loops = FALSE)))
+
+metrics3 <- cbind(Galmont_ScaleFree ,G_Hotel_ScaleFree)
+rownames(metrics3) <- c("Edges","Nodes","Diameter","Average path length","Clustering Coefficient", "Gini Index",
+                        "Average Degree")
+metrics3
+```
+
+
+```{r chunk_333, message=FALSE, warning=FALSE}
+x<- merge(metrics, metrics1, by = "row.names", all = TRUE)
+y <- merge(metrics2, metrics3, by = "row.names", all = TRUE)
+
+table_ <- data.frame(merge(x,y, all = TRUE))
+colnames(table_) <- c("Metrics","Galmont Hotel","G Hotel","Galmont G(n,p)","G Hotel G(n,p)",
+                      "Galmont Smallworld","G Hotel Smallworld","Galmont ScaleFree","G Hotel ScaleFree")
+
+table_ht <- as_hux(table_, scientific=FALSE)
+car_ht <- huxtable::add_colnames(table_ht)
+
+# Pretty output, see below: 
+theme_plain(car_ht)
+
+```
+
+
+# Conclusion.
+
+In summary, comparing our random network model with the real data indicates that the random network model differs from real networks in two crucial ways it lacks transitivity and doesn't capture the degree distribution of real networks. In a random network most nodes have comparable degrees, forbidding hubs. In contrast, in real networks we observe a distribution that follows the power law distribution where there a significant number of highly connected nodes and there is a significant difference in node degrees.
+
+Despite the small world model having a smaller average path length and a more appropriate clustering coefficient then the random network. As this model is essentially an extension of the random network model, the WattsStrogatz model still predicts an unrealistic Poisson-like degree distribution. Therefore high degree nodes commonly found in real networks, are still absent. 
+
+The Barabási-Albert model does encapsulate the fact that in real networks nodes arrive iteratively, which offers a dynamic description of a network's evolution. Although, in reality the model is not designed to capture the details of any one particular real network. The models principle purpose is to capture mechanisms responsible for the emergence of the scale-free property witnessed in all real networks.
